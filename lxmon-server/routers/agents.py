@@ -138,7 +138,7 @@ async def submit_metrics(
             metric_name=metric_data.metric_name,
             value=metric_data.value,
             unit=metric_data.unit,
-            metadata=metric_data.metadata,
+            metric_metadata=metric_data.metric_metadata,
             collected_at=datetime.utcnow()
         )
         db.add(metric)

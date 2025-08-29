@@ -38,7 +38,7 @@ class Metric(Base):
     metric_name = Column(String(100), nullable=False)
     value = Column(Float, nullable=False)
     unit = Column(String(20))
-    metadata = Column(JSON)  # Additional metric data
+    metric_metadata = Column(JSON)  # Additional metric data
     collected_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

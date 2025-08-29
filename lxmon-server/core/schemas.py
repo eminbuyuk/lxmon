@@ -73,7 +73,7 @@ class MetricData(BaseModel):
     metric_name: str
     value: float
     unit: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metric_metadata: Optional[Dict[str, Any]] = None
 
 class MetricsPayload(BaseModel):
     hostname: str

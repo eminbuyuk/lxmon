@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 engine = create_async_engine(
     settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
     echo=settings.DEBUG,
-    poolclass=StaticPool,
-    connect_args={
-        "check_same_thread": False,
-    }
 )
 
 # Create async session factory
@@ -29,12 +25,16 @@ async_session = sessionmaker(
 )
 
 async def get_db() -> AsyncSession:
-    """Dependency to get database session."""
-    async with async_session() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+    """Get a database session for FastAPI dependencies."""
+    session = async_session()
+    try:
+        yield session
+    finally:
+        await session.close()
+
+async def get_background_db_session() -> AsyncSession:
+    """Get a database session for background tasks (returns session directly)."""
+    return async_session()
 
 async def create_tables():
     """Create all database tables."""
