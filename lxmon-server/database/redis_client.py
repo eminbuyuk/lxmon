@@ -106,6 +106,18 @@ class RedisClient:
             logger.error(f"Error popping command: {e}")
             return None
 
+    async def get_command_count(self, server_id: int) -> int:
+        """Get number of pending commands for server."""
+        if not self.client:
+            await self.connect()
+
+        queue_key = f"commands:{server_id}"
+        try:
+            return await self.client.llen(queue_key)
+        except Exception as e:
+            logger.error(f"Error getting command count: {e}")
+            return 0
+
     async def get_info(self) -> dict:
         """Get Redis server information."""
         if not self.client:

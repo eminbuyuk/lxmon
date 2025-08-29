@@ -156,6 +156,30 @@ export interface HealthStatus {
   };
 }
 
+export interface Alert {
+  id: number;
+  alert_rule_id: number;
+  server_id: number;
+  message: string;
+  severity: string;
+  status: string;
+  triggered_at: string;
+  resolved_at?: string;
+}
+
+export interface AlertRule {
+  id: number;
+  name: string;
+  description?: string;
+  metric_type: string;
+  metric_name: string;
+  condition: string;
+  threshold: number;
+  severity: string;
+  enabled: boolean;
+  created_at: string;
+}
+
 // Auth API
 export const authAPI = {
   login: (data: LoginRequest) => api.post<LoginResponse>('/api/auth/login', data),
@@ -174,6 +198,17 @@ export const serversAPI = {
   sendCommand: (id: number, command: string) => api.post<Command>(`/api/servers/${id}/command`, { command }),
   getServerCommands: (id: number, params?: any) => api.get<Command[]>(`/api/servers/${id}/commands`, { params }),
   getCommandStatus: (id: number) => api.get<Command>(`/api/commands/${id}/status`),
+};
+
+// Alerts API
+export const alertsAPI = {
+  getAlerts: () => api.get<Alert[]>('/api/alerts'),
+  getAlert: (id: number) => api.get<Alert>(`/api/alerts/${id}`),
+  updateAlert: (id: number, data: any) => api.put<Alert>(`/api/alerts/${id}`, data),
+  getAlertRules: () => api.get<AlertRule[]>('/api/alerts/rules'),
+  createAlertRule: (data: any) => api.post<AlertRule>('/api/alerts/rules', data),
+  updateAlertRule: (id: number, data: any) => api.put<AlertRule>(`/api/alerts/rules/${id}`, data),
+  deleteAlertRule: (id: number) => api.delete(`/api/alerts/rules/${id}`),
 };
 
 // System API

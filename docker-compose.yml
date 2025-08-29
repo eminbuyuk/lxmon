@@ -42,7 +42,7 @@ services:
       DATABASE_URL: "postgresql://lxmon:lxmon@postgres:5432/lxmon"
       REDIS_URL: "redis://redis:6379"
       AGENT_API_KEYS: "agent-key-1,agent-key-2,agent-key-3"
-      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173,http://192.168.211.128:3000"
     ports:
       - "8000:8000"
     depends_on:
@@ -64,7 +64,7 @@ services:
       context: ./lxmon-dashboard
       dockerfile: Dockerfile
     environment:
-      VITE_API_URL: "http://lxmon-server:8000"
+      VITE_API_URL: "http://192.168.211.128:8000"
     ports:
       - "3000:80"
     depends_on:

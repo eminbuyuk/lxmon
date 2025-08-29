@@ -69,6 +69,14 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> O
 
     return user
 
+def verify_token(token: str) -> Optional[dict]:
+    """Verify JWT token and return payload."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { serversAPI, systemAPI, type Server, type SystemInfo, type HealthStatus } from '../services/api';
+import { serversAPI, systemAPI, type Server } from '../services/api';
 import {
   ServerIcon,
   AlertTriangle,
