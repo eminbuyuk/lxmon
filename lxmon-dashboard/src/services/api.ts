@@ -89,15 +89,71 @@ export interface AlertRule {
   created_at: string;
 }
 
-export interface Alert {
-  id: number;
-  alert_rule_id: number;
-  server_id: number;
-  message: string;
-  severity: string;
+export interface SystemInfo {
+  timestamp: string;
+  system: {
+    platform: string;
+    platform_version: string;
+    architecture: string;
+    python_version: string;
+    hostname: string;
+  };
+  resources: {
+    cpu: {
+      count: number;
+      count_logical: number;
+      usage_percent: number;
+    };
+    memory: {
+      total: number;
+      available: number;
+      used: number;
+      usage_percent: number;
+    };
+    disk: {
+      total: number;
+      free: number;
+      used: number;
+      usage_percent: number;
+    };
+  };
+  database: {
+    servers_count: number;
+    metrics_count: number;
+    active_alerts_count: number;
+    enabled_alert_rules_count: number;
+    connection_status: string;
+  };
+  redis: {
+    connected_clients: number;
+    used_memory_human: string;
+    uptime_days: number;
+    status: string;
+  };
+  background_tasks: {
+    running: boolean;
+    active_tasks: number;
+  };
+}
+
+export interface HealthStatus {
   status: string;
-  triggered_at: string;
-  resolved_at?: string;
+  service: string;
+  version: string;
+  timestamp: string;
+  uptime: string;
+  system: {
+    platform: string;
+    python_version: string;
+    cpu_count: number;
+    memory_total: number;
+    memory_available: number;
+  };
+  checks: {
+    database: any;
+    redis: any;
+    background_tasks: any;
+  };
 }
 
 // Auth API
@@ -120,13 +176,9 @@ export const serversAPI = {
   getCommandStatus: (id: number) => api.get<Command>(`/api/commands/${id}/status`),
 };
 
-// Alerts API
-export const alertsAPI = {
-  getAlertRules: (params?: any) => api.get<AlertRule[]>('/api/alerts/rules', { params }),
-  getAlertRule: (id: number) => api.get<AlertRule>(`/api/alerts/rules/${id}`),
-  createAlertRule: (data: any) => api.post<AlertRule>('/api/alerts/rules', data),
-  updateAlertRule: (id: number, data: any) => api.put<AlertRule>(`/api/alerts/rules/${id}`, data),
-  deleteAlertRule: (id: number) => api.delete(`/api/alerts/rules/${id}`),
-  getAlerts: (params?: any) => api.get<Alert[]>('/api/alerts', { params }),
-  resolveAlert: (id: number) => api.put(`/api/alerts/${id}/resolve`),
+// System API
+export const systemAPI = {
+  getHealth: () => api.get<HealthStatus>('/health'),
+  getSystemInfo: () => api.get<SystemInfo>('/api/system/info'),
+  getMetrics: () => api.get('/metrics'),
 };

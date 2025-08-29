@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { serversAPI, type Server } from '../services/api';
+import { serversAPI, systemAPI, type Server, type SystemInfo, type HealthStatus } from '../services/api';
 import {
   ServerIcon,
   AlertTriangle,
@@ -8,12 +8,15 @@ import {
   Activity,
   Cpu,
   HardDrive,
-  Wifi,
   RefreshCw,
   Moon,
   Sun,
   TrendingUp,
-  Clock
+  Clock,
+  Database,
+  Zap,
+  Settings,
+  BarChart3
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -26,6 +29,20 @@ const Dashboard: React.FC = () => {
     refetchInterval: 30000, // Refetch every 30 seconds
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  const { data: systemInfo } = useQuery({
+    queryKey: ['system-info'],
+    queryFn: () => systemAPI.getSystemInfo(),
+    refetchInterval: 60000, // Refetch every minute
+    retry: 2,
+  });
+
+  const { data: healthStatus } = useQuery({
+    queryKey: ['health'],
+    queryFn: () => systemAPI.getHealth(),
+    refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 2,
   });
 
   // Update last update time when data changes
@@ -178,8 +195,13 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <Cpu className="h-6 w-6 text-blue-500" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg CPU</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">--%</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">System CPU</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {systemInfo?.data?.resources.cpu.usage_percent.toFixed(1) || '--'}%
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {systemInfo?.data?.resources.cpu.count_logical || '--'} cores
+              </p>
             </div>
           </div>
         </div>
@@ -188,8 +210,13 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <Activity className="h-6 w-6 text-green-500" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Memory</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">--%</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Memory Usage</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {systemInfo?.data?.resources.memory.usage_percent.toFixed(1) || '--'}%
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {systemInfo?.data ? `${(systemInfo.data.resources.memory.used / 1024 / 1024 / 1024).toFixed(1)}GB used` : '--'}
+              </p>
             </div>
           </div>
         </div>
@@ -198,18 +225,137 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <HardDrive className="h-6 w-6 text-yellow-500" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Disk</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">--%</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Disk Usage</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {systemInfo?.data?.resources.disk.usage_percent.toFixed(1) || '--'}%
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {systemInfo?.data ? `${(systemInfo.data.resources.disk.free / 1024 / 1024 / 1024).toFixed(1)}GB free` : '--'}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
           <div className="flex items-center">
-            <Wifi className="h-6 w-6 text-purple-500" />
+            <Database className="h-6 w-6 text-purple-500" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Network I/O</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">-- MB/s</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Database</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {systemInfo?.data?.database.connection_status === 'healthy' ? '✅' : '❌'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {systemInfo?.data?.database.servers_count || 0} servers
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* System Health & Metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* System Health Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">System Health</h3>
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+              healthStatus?.data?.status === 'healthy'
+                ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+                : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200'
+            }`}>
+              {healthStatus?.data?.status || 'unknown'}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Uptime</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {healthStatus?.data?.uptime || '--'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Platform</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {healthStatus?.data?.system.platform || '--'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Python</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {healthStatus?.data?.system.python_version || '--'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Background Tasks</span>
+              <span className={`text-sm font-medium ${
+                healthStatus?.data?.checks.background_tasks?.status === 'running'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {healthStatus?.data?.checks.background_tasks?.status || 'unknown'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Database & Redis Status */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Services Status</h3>
+            <Settings className="h-5 w-5 text-gray-400" />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Database className="h-4 w-4 text-blue-500 mr-2" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">PostgreSQL</span>
+              </div>
+              <span className={`text-sm font-medium ${
+                systemInfo?.data?.database.connection_status === 'healthy'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {systemInfo?.data?.database.connection_status || 'unknown'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Zap className="h-4 w-4 text-red-500 mr-2" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">Redis</span>
+              </div>
+              <span className={`text-sm font-medium ${
+                systemInfo?.data?.redis.status === 'healthy'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {systemInfo?.data?.redis.status || 'unknown'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <BarChart3 className="h-4 w-4 text-purple-500 mr-2" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">Metrics</span>
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {systemInfo?.data?.database.metrics_count || 0} collected
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <AlertTriangle className="h-4 w-4 text-orange-500 mr-2" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">Active Alerts</span>
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {systemInfo?.data?.database.active_alerts_count || 0}
+              </span>
             </div>
           </div>
         </div>

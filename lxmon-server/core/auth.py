@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import logging
 
 from core.config import settings
@@ -31,26 +31,10 @@ def get_password_hash(password: str) -> str:
     """Hash a password."""
     return pwd_context.hash(password)
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create JWT access token."""
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-def verify_token(token: str) -> Optional[dict]:
-    """Verify JWT token and return payload."""
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload
-    except JWTError as e:
-        logger.error(f"JWT verification failed: {e}")
-        return None
+# JWT Configuration
+SECRET_KEY = getattr(settings, 'SECRET_KEY', "your-secret-key-here")
+ALGORITHM = getattr(settings, 'ALGORITHM', "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = getattr(settings, 'ACCESS_TOKEN_EXPIRE_MINUTES', 30)
 
 def verify_api_key(api_key: str) -> bool:
     """Verify agent API key."""
@@ -78,10 +62,10 @@ async def get_current_user(
         raise credentials_exception
 
     # Get user from database
-    user = await db.execute(
-        db.query(User).filter(User.username == username, User.is_active == True)
+    result = await db.execute(
+        select(User).where(User.username == username, User.is_active == True)
     )
-    user = user.scalar_one_or_none()
+    user = result.scalar_one_or_none()
 
     if user is None:
         raise credentials_exception
