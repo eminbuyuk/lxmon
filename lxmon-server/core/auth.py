@@ -9,6 +9,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 from core.config import settings
@@ -35,6 +36,18 @@ def get_password_hash(password: str) -> str:
 SECRET_KEY = getattr(settings, 'SECRET_KEY', "your-secret-key-here")
 ALGORITHM = getattr(settings, 'ALGORITHM', "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = getattr(settings, 'ACCESS_TOKEN_EXPIRE_MINUTES', 30)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create JWT access token."""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 def verify_api_key(api_key: str) -> bool:
     """Verify agent API key."""

@@ -12,42 +12,6 @@ import logging
 from core.database import get_db
 from core.auth import (
     verify_password, create_access_token, get_password_hash,
-    get_current_user, settings
-)
-from models.models import User
-from core.schemas import UserCreate, UserResponse, Token
-
-logger = logging.getLogger(__name__)
-
-router = APIRouter()
-
-async def authenticate_user(db: AsyncSession, username: str, password: str):
-    """Authenticate user with username and password."""
-    result = await db.execute(
-        select(User).where(User.username == username, User.is_active == True)
-    )
-    user = result.scalar_one_or_none()
-
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
-
-"""
-Authentication router for dashboard users.
-"""
-
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-import logging
-
-from core.database import get_db
-from core.auth import (
-    verify_password, create_access_token, get_password_hash,
     get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from models.models import User
@@ -56,19 +20,6 @@ from core.schemas import UserCreate, UserResponse, Token
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-async def authenticate_user(db: AsyncSession, username: str, password: str):
-    """Authenticate user with username and password."""
-    result = await db.execute(
-        select(User).where(User.username == username, User.is_active == True)
-    )
-    user = result.scalar_one_or_none()
-
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
 
 @router.post("/login", response_model=Token, tags=["Authentication"])
 async def login_for_access_token(
