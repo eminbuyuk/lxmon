@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: lxmon
+      POSTGRES_USER: lxmon
+      POSTGRES_PASSWORD: lxmon
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lxmon"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  lxmon-server:
+    build:
+      context: ./lxmon-server
+      dockerfile: Dockerfile
+    environment:
+      DEBUG: "false"
+      SECRET_KEY: "your-super-secret-key-change-in-production"
+      DATABASE_URL: "postgresql://lxmon:lxmon@postgres:5432/lxmon"
+      REDIS_URL: "redis://redis:6379"
+      AGENT_API_KEYS: "agent-key-1,agent-key-2,agent-key-3"
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./lxmon-server/.env:/app/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # React Dashboard
+  lxmon-dashboard:
+    build:
+      context: ./lxmon-dashboard
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_URL: "http://localhost:8000"
+    ports:
+      - "3000:80"
+    depends_on:
+      - lxmon-server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Go Agent (for testing - can be run separately)
+  lxmon-agent:
+    build:
+      context: ./lxmon-agent
+      dockerfile: Dockerfile
+    environment:
+      LXMON_SERVER_URL: "http://lxmon-server:8000"
+      LXMON_API_KEY: "agent-key-1"
+      LXMON_INTERVAL: "60"
+      LXMON_MAX_TIMEOUT: "300"
+    depends_on:
+      - lxmon-server
+    # Uncomment to run agent in container
+    # profiles:
+    #   - agent
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    driver: bridge

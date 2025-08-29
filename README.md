@@ -1,156 +1,260 @@
-# 🏗️ lxmon – System Architecture
+# lxmon - System Monitoring Platform
 
-## 1. **Components**
+A comprehensive system monitoring solution with agent-based data collection, real-time dashboards, and command execution capabilities.
 
-### **lxmon-agent**
+## 🏗️ Architecture
 
-* Lightweight binary (Go / Rust / Python) installed on each server.
-* Responsibilities:
+### Components
 
-  * Collect system metrics (CPU, RAM, Disk, Network, service status).
-  * (Optional) Forward logs.
-  * Receive and execute commands from `lxmon-server`.
-* Works in **pull model** → sends regular **heartbeats** and checks for new commands.
+- **lxmon-agent**: Lightweight Go binary for system metrics collection
+- **lxmon-server**: FastAPI backend with PostgreSQL and Redis
+- **lxmon-dashboard**: React frontend with real-time monitoring
 
-### **lxmon-server (API & Backend)**
+### Features
 
-* Built with FastAPI / Django / Go + gRPC (for performance).
-* Responsibilities:
+- ✅ Real-time system metrics (CPU, RAM, Disk, Network)
+- ✅ Agent heartbeat monitoring
+- ✅ Remote command execution
+- ✅ Alert system with customizable rules
+- ✅ Multi-tenant architecture
+- ✅ RESTful API with OpenAPI documentation
+- ✅ Modern React dashboard with Tailwind CSS
 
-  * API layer: agents and dashboard connect here.
-  * Authentication & security (JWT / API Key / OAuth).
-  * Command queue management.
-  * Store agent metrics in the database.
-  * Multi-tenant isolation in SaaS mode.
+## 🚀 Quick Start
 
-### **Dashboard (Frontend)**
+### Prerequisites
 
-* React + Tailwind (using `shadcn/ui` for a modern panel).
-* Responsibilities:
+- Docker and Docker Compose
+- Go 1.21+ (for agent development)
+- Node.js 18+ (for dashboard development)
 
-  * Server list, metrics, health checks.
-  * Command execution (e.g., restart nginx).
-  * Alerts & notifications (email, Slack, webhook).
+### 1. Clone and Setup
 
-### **Database**
+```bash
+git clone <your-repo-url>
+cd lxmon
+cp .env.example .env
+```
 
-* PostgreSQL (multi-tenant capable).
-* Redis (command queue + cache).
-* Time-series: InfluxDB or PostgreSQL Timescale.
+### 2. Start All Services
 
-### **Message Broker (Optional)**
+```bash
+docker-compose up -d
+```
 
-* RabbitMQ / Kafka → required only at large SaaS scale.
-* For MVP: PostgreSQL + Redis are sufficient.
+This will start:
+- PostgreSQL database
+- Redis cache/queue
+- FastAPI backend (port 8000)
+- React dashboard (port 3000)
 
----
+### 3. Access the Dashboard
 
-## 2. **API Layer**
+Open http://localhost:3000 in your browser.
 
-### 🔐 Authentication
+### 4. Default Credentials
 
-* Agent → API Key (unique per agent).
-* Dashboard user → JWT session.
-* SaaS model → `tenant_id` separation.
+Create a user account through the registration form, or use the API directly:
 
-### 🔄 API Endpoints
+```bash
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "email": "admin@example.com", "password": "password"}'
+```
 
-#### Agent → Server
+## 📦 Project Structure
 
-* `POST /api/agent/register` → Agent registration.
-* `POST /api/agent/metrics` → Push metrics (CPU, RAM, Disk, etc.).
-* `GET /api/agent/commands` → Fetch pending commands.
-* `POST /api/agent/command-result` → Report command results.
+```
+lxmon/
+├── lxmon-server/          # FastAPI backend
+│   ├── main.py           # Application entry point
+│   ├── core/             # Core functionality
+│   ├── models/           # Database models
+│   ├── routers/          # API endpoints
+│   ├── database/         # Redis client
+│   └── requirements.txt
+├── lxmon-agent/          # Go monitoring agent
+│   ├── main.go          # Agent implementation
+│   └── Dockerfile
+├── lxmon-dashboard/      # React frontend
+│   ├── src/
+│   │   ├── components/  # Reusable components
+│   │   ├── pages/       # Page components
+│   │   ├── services/    # API services
+│   │   └── contexts/    # React contexts
+│   └── Dockerfile
+├── docker-compose.yml    # Orchestration
+├── .env.example         # Environment template
+└── README.md
+```
 
-#### Dashboard → Server
+## 🔧 Configuration
 
-* `GET /api/servers` → List servers.
-* `GET /api/servers/{id}/metrics` → Fetch server metrics.
-* `POST /api/servers/{id}/command` → Send command.
-* `GET /api/commands/{id}/status` → Command result.
-* `POST /api/alerts` → Create alert rules.
+### Environment Variables
 
----
+Copy `.env.example` to `.env` and configure:
 
-## 3. **Command Execution Flow**
+```bash
+# Backend
+DEBUG=false
+SECRET_KEY=your-secret-key
+DATABASE_URL=postgresql://lxmon:lxmon@localhost:5432/lxmon
+REDIS_URL=redis://localhost:6379
+AGENT_API_KEYS=agent-key-1,agent-key-2
 
-1. User selects **“Restart Nginx”** from dashboard.
-2. `POST /api/servers/{id}/command` → stored in DB (status: pending).
-3. Agent calls `GET /api/agent/commands` → sees pending command.
-4. Agent executes the command → sends result via `POST /api/agent/command-result`.
-5. Dashboard updates → shows live result (`exit 0, success`).
+# Agent
+LXMON_SERVER_URL=http://localhost:8000
+LXMON_API_KEY=agent-key-1
+LXMON_INTERVAL=60
 
----
+# Dashboard
+VITE_API_URL=http://localhost:8000
+```
 
-## 4. **Agent Structure**
+## 🏃‍♂️ Development
 
-* **Core**: Go binary (portable, single file), runs as systemd service.
-* **Metric Collector**: Reads `/proc`, `psutil`, `systemd DBus`.
-* **Command Executor**: Uses `subprocess` to run shell commands.
+### Backend Development
 
-  * Whitelist / plugin system (only allowed commands).
-* **Transport**: Secure HTTPS (TLS).
+```bash
+cd lxmon-server
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-  * Each request signed with JWT / API Key.
+API documentation: http://localhost:8000/docs
 
----
+### Agent Development
 
-## 5. **SaaS Architecture**
+```bash
+cd lxmon-agent
+go run main.go
+```
 
-* **Multi-Tenant**:
+### Dashboard Development
 
-  * Single DB → `tenant_id` column separation.
-  * Or separate schemas per tenant.
-* **Deployment**:
+```bash
+cd lxmon-dashboard
+npm install
+npm run dev
+```
 
-  * API + DB → Kubernetes (for scaling).
-  * Agent → lightweight binary, supports self-update.
-* **Billing**:
+## � API Endpoints
 
-  * Based on number of agents + data retention period (Datadog-style).
+### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `GET /api/auth/me` - Get current user
 
----
+### Servers
+- `GET /api/servers` - List servers
+- `GET /api/servers/{id}` - Get server details
+- `POST /api/servers` - Create server
+- `PUT /api/servers/{id}` - Update server
+- `DELETE /api/servers/{id}` - Delete server
+- `GET /api/servers/{id}/metrics` - Get server metrics
+- `POST /api/servers/{id}/command` - Send command
+- `GET /api/servers/{id}/commands` - Get command history
 
-## 6. **MVP Roadmap**
+### Agent Endpoints
+- `POST /api/agent/register` - Agent registration
+- `POST /api/agent/heartbeat` - Agent heartbeat
+- `POST /api/agent/metrics` - Submit metrics
+- `GET /api/agent/commands` - Get pending commands
+- `POST /api/agent/command-result` - Submit command result
 
-### 🟢 Phase 1 – MVP
+### Alerts
+- `GET /api/alerts/rules` - List alert rules
+- `POST /api/alerts/rules` - Create alert rule
+- `PUT /api/alerts/rules/{id}` - Update alert rule
+- `DELETE /api/alerts/rules/{id}` - Delete alert rule
+- `GET /api/alerts` - List alerts
+- `PUT /api/alerts/{id}/resolve` - Resolve alert
 
-* Agent (Go/Python) → sends CPU/RAM/Disk.
-* Server (FastAPI) → stores in DB.
-* Dashboard (React) → server list + metric charts.
+## 🔐 Security
 
-### 🟡 Phase 2 – Command System
+- JWT-based authentication for dashboard users
+- API key authentication for agents
+- Command whitelisting for security
+- CORS protection
+- Input validation and sanitization
 
-* Command queue (Postgres + Redis).
-* Send commands from dashboard.
-* Agent executes commands and reports results.
+## 📈 Monitoring & Metrics
 
-### 🔴 Phase 3 – SaaS Readiness
+The system collects:
+- CPU usage percentage
+- Memory usage (total, used, percentage)
+- Disk usage by mount point
+- Network I/O (bytes sent/received)
+- System uptime
+- Host information
 
-* Multi-tenant support.
-* Billing & subscriptions.
-* Scaling (K8s, load balancer).
+## 🚀 Deployment
 
----
+### Production Deployment
 
-## 7. **Future Features**
+1. Update environment variables in `.env`
+2. Use production Docker Compose:
 
-* Log forwarding (similar to Datadog Logs).
-* Alerting (thresholds, anomaly detection).
-* Plugin system (e.g., MySQL monitoring, Nginx log analysis).
-* Mobile app (push notifications for alerts).
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
 
----
+### Kubernetes Deployment
 
-## 📌 Summary
+Apply the Kubernetes manifests:
 
-* **Agent** → heartbeat + metrics + command executor.
-* **API** → command queue + metrics DB + authentication.
-* **Dashboard** → visualization + command execution.
-* **SaaS** → multi-tenant, billing, scaling.
+```bash
+kubectl apply -f k8s/
+```
 
----
+## 🤝 Contributing
 
-## 📄 License
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## � License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+1. **Database connection failed**
+   - Ensure PostgreSQL is running
+   - Check DATABASE_URL in environment variables
+
+2. **Redis connection failed**
+   - Ensure Redis is running
+   - Check REDIS_URL in environment variables
+
+3. **Agent cannot connect**
+   - Verify LXMON_SERVER_URL
+   - Check API key is in AGENT_API_KEYS list
+
+4. **Dashboard not loading**
+   - Ensure backend is running on port 8000
+   - Check VITE_API_URL configuration
+
+### Logs
+
+View service logs:
+```bash
+docker-compose logs lxmon-server
+docker-compose logs lxmon-dashboard
+docker-compose logs postgres
+docker-compose logs redis
+```
+
+## � Additional Resources
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [React Documentation](https://react.dev/)
+- [Go Documentation](https://golang.org/doc/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Redis Documentation](https://redis.io/documentation)
