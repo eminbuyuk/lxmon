@@ -12,7 +12,7 @@ import logging
 from core.database import get_db
 from core.auth import (
     verify_password, create_access_token, get_password_hash,
-    get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+    get_current_user, authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from models.models import User
 from core.schemas import UserCreate, UserResponse, Token

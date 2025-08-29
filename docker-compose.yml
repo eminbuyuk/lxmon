@@ -64,7 +64,7 @@ services:
       context: ./lxmon-dashboard
       dockerfile: Dockerfile
     environment:
-      VITE_API_URL: "http://localhost:8000"
+      VITE_API_URL: "http://lxmon-server:8000"
     ports:
       - "3000:80"
     depends_on:

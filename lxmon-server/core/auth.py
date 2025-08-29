@@ -53,6 +53,22 @@ def verify_api_key(api_key: str) -> bool:
     """Verify agent API key."""
     return api_key in settings.AGENT_API_KEYS
 
+async def authenticate_user(db: AsyncSession, username: str, password: str) -> Optional[User]:
+    """Authenticate a user by username and password."""
+    # Get user from database
+    result = await db.execute(
+        select(User).where(User.username == username, User.is_active == True)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+
+    if not verify_password(password, user.hashed_password):
+        return None
+
+    return user
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
