@@ -182,7 +182,16 @@ export interface AlertRule {
 
 // Auth API
 export const authAPI = {
-  login: (data: LoginRequest) => api.post<LoginResponse>('/api/auth/login', data),
+  login: (data: LoginRequest) => {
+    const formData = new URLSearchParams();
+    formData.append('username', data.username);
+    formData.append('password', data.password);
+    return api.post<LoginResponse>('/api/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+  },
   register: (data: any) => api.post('/api/auth/register', data),
   getProfile: () => api.get('/api/auth/me'),
 };
