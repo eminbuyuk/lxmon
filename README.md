@@ -148,3 +148,9 @@
 * **API** → command queue + metrics DB + authentication.
 * **Dashboard** → visualization + command execution.
 * **SaaS** → multi-tenant, billing, scaling.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
